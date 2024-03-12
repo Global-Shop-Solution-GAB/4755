@@ -1,0 +1,1218 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("")
+Gui.Form..Size(23685,10695)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Event(Resize,Form_Resize)
+Gui.Form.progbar.Create(ProgressBar)
+Gui.Form.progbar.Visible(False)
+Gui.Form.progbar.Size(3735,255)
+Gui.Form.progbar.Position(285,705)
+Gui.Form.lblLoading.Create(Label,"Loading...",False,1935,255,0,270,375,True,0,"Arial",8,-2147483633,0)
+Gui.Form.framePermissions.Create(Frame)
+Gui.Form.framePermissions.Size(1710,480)
+Gui.Form.framePermissions.Position(21345,1095)
+Gui.Form.framePermissions.Visible(False)
+Gui.Form.optView.Create(Option)
+Gui.Form.optView.Size(795,255)
+Gui.Form.optView.Position(120,165)
+Gui.Form.optView.Parent("framePermissions")
+Gui.Form.optView.Caption("View")
+Gui.Form.optEdit.Create(Option)
+Gui.Form.optEdit.Size(750,255)
+Gui.Form.optEdit.Position(975,165)
+Gui.Form.optEdit.Parent("framePermissions")
+Gui.Form.optEdit.Caption("Edit")
+Gui.Form.cmdRefresh.Create(Button)
+Gui.Form.cmdRefresh.Size(855,375)
+Gui.Form.cmdRefresh.Position(22200,570)
+Gui.Form.cmdRefresh.Caption("REFRESH")
+Gui.Form.cmdRefresh.Event(Click,cmdRefresh_Click)
+Gui.Form.tabs.Create(Tab)
+Gui.Form.tabs.Size(22905,8130)
+Gui.Form.tabs.Position(225,1590)
+Gui.Form.tabs.Anchor(15)
+Gui.Form.tabs.Tabs(2)
+Gui.Form.tabs.SetTab(0)
+Gui.Form.tabs.Caption("Current")
+Gui.Form.tabs.SetTab(1)
+Gui.Form.tabs.Caption("Archived")
+Gui.Form.GsGCurrent.Create(GsGridControl)
+Gui.Form.GsGCurrent.Size(22410,7395)
+Gui.Form.GsGCurrent.Position(210,135)
+Gui.Form.GsGCurrent.Event(RowClick,GsGridControl1_RowClick)
+Gui.Form.GsGCurrent.Parent("tabs",0)
+Gui.Form.GsGCurrent.Event(RowCellClick,GsGCurrent_RowCellClick)
+Gui.Form.GsGCurrent.Event(CellValueChanged,GsGCurrent_CellValueChanged)
+Gui.Form.GsGCurrent.Anchor(15)
+Gui.Form.GsGArchived.Create(GsGridControl)
+Gui.Form.GsGArchived.Size(22410,7395)
+Gui.Form.GsGArchived.Position(210,135)
+Gui.Form.GsGArchived.Parent("tabs",1)
+Gui.Form.GsGArchived.Event(RowCellClick,GsGArchived_RowCellClick)
+Gui.Form.GsGArchived.Anchor(15)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(1395,525)
+Gui.Form.cmdSave.Position(255,9945)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Gui.Form.cmdSave.Visible(False)
+Gui.Form.lblText.Create(Label,"DLS New Order Review Dashboard",True,5220,420,0,9405,345,True,0,"Arial",15,-2147483633,0)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+v.Local.sIcon.Declare
+V.Local.sGssLogo.Declare
+V.Local.bGroup.Declare
+v.Global.spo.Declare(string)
+v.Global.bcontext.Declare(boolean)
+v.Global.bordersave.Declare(boolean)
+v.Local.sfile.Declare(string)
+v.Local.bexists.Declare(boolean)
+v.Local.sblanket.Declare(string)
+v.Local.sblanketfile.Declare(string)
+v.Local.ssql.Declare(string)
+v.Global.sGroup.Declare(string)
+v.Local.sret.Declare(String)
+v.Local.sqte.Declare(string)
+'Coded by: WAW
+'Date: 10/25/17
+'Add checkboxes to the shipping dashboard to allocate and to remove allocations for the sales order line. 
+'When selected, item master records will be automatically allocated to the sales order line.
+'Custom menu Item ORDER ENTRY>FILE>NEW ORDER REVIEW DASHBOARD
+
+'open the connection
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+'create the file paths to check if they were written
+f.Intrinsic.String.Build("{0}\{1}",v.caller.FilesDir,"4755PO.txt",v.Local.sfile)
+f.Intrinsic.String.Build("{0}\{1}",v.caller.FilesDir,"4755Blanket.txt",v.Local.sblanketfile)
+
+'save button on the blanket release screen
+f.Intrinsic.Control.If(v.Caller.Hook,=,48762)
+
+	f.Intrinsic.File.exists(v.Local.sblanketfile,v.Local.bexists)
+	f.Intrinsic.Control.If(v.Local.bexists,=,true)
+		f.Intrinsic.control.Try
+		f.Intrinsic.File.DeleteFile(v.local.sblanketfile)
+		f.Intrinsic.Control.Catch
+		f.Intrinsic.Control.EndTry		
+		f.Intrinsic.File.String2File(v.Local.sblanketfile,v.Passed.000106)		
+	f.Intrinsic.Control.Else
+		f.Intrinsic.File.String2File(v.Local.sblanketfile,v.Passed.000106)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.callsub(form_Unload)
+f.Intrinsic.Control.EndIf
+
+'if the blanket orders screen populates, read the blanket text file to populate the fields
+f.Intrinsic.Control.If(v.Caller.Hook,=,48710)
+	f.Intrinsic.File.exists(v.Local.sblanketfile,v.Local.bexists)
+	f.Intrinsic.Control.If(v.Local.bexists,=,True)
+		f.Intrinsic.File.File2String(v.Local.sblanketfile,v.Local.sblanket)
+		f.Intrinsic.String.Split(v.Local.sblanket,"*!*",v.Local.sblanket)
+		v.Passed.000109.Set(v.Local.sblanket(0))
+		v.Passed.000095.Set(v.Local.sblanket(1))	
+		f.Intrinsic.control.Try
+		f.Intrinsic.File.DeleteFile(v.Local.sblanketfile)
+		f.Intrinsic.Control.Catch
+		f.Intrinsic.Control.EndTry
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.callsub(form_Unload)
+f.Intrinsic.Control.EndIf
+
+'if the SO open screen populates read the text filet o populate the data
+f.Intrinsic.Control.If(v.Caller.Hook,=,11560)
+f.Intrinsic.Control.AndIf(v.Caller.Switches,=,"N")
+	f.Intrinsic.File.exists(v.Local.sfile,v.Local.bexists)
+	f.Intrinsic.Control.If(v.Local.bexists,=,True)	
+		f.Intrinsic.File.File2String(v.Local.sfile,v.Global.spo)
+		f.Intrinsic.String.Split(v.Global.spo,"*!*",v.Global.spo)
+		v.Passed.000025.Set(v.Global.spo(0))
+		v.Passed.000065.set(v.Global.spo(1))
+		f.Intrinsic.File.DeleteFile(v.Local.sfile)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.callsub(form_Unload)
+f.Intrinsic.Control.Elseif(v.Caller.Switches,=,"O")
+	v.Passed.global.Set(v.Passed.000003.format0000000)
+	f.Intrinsic.Control.callsub(form_Unload)
+f.Intrinsic.Control.ElseIf(v.Caller.Switches,=,"V")
+	f.Intrinsic.Control.callsub(form_Unload)
+f.Intrinsic.Control.ElseIf(v.Caller.Switches,=,"D")
+	f.Intrinsic.Control.callsub(form_Unload)	
+f.Intrinsic.Control.EndIf
+
+'logPO - can add rows, cannot select a quote, cannot create order, can copy archive - can view the quote
+'Orders - cannot add new row, can copy/archive, can select customer, cannot edit info from cust code to the ledft, can select quote, create order - edit the quote number
+'if in both groups - all 
+
+'v.Global.sGroup.Set("Both")
+F.Global.Security.IsInGroup(V.Caller.User,"LogPO",V.Caller.CompanyCode,V.Local.bGroup)
+F.Intrinsic.Control.If(V.Local.bGroup,=,True)
+	v.Global.sGroup.Set("LogPO")
+f.Intrinsic.Control.Else
+	v.Global.sGroup.Set("None")
+F.Intrinsic.Control.EndIf
+
+F.Global.Security.IsInGroup(V.Caller.User,"Orders",V.Caller.CompanyCode,V.Local.bGroup)
+F.Intrinsic.Control.If(V.Local.bGroup,=,True)
+	f.Intrinsic.Control.If(v.Global.sGroup,=,"LogPO")
+		v.Global.sGroup.Set("Both")
+	f.Intrinsic.Control.Elseif(v.local.bgroup,=,true)
+		v.Global.sGroup.Set("Orders")
+	f.Intrinsic.Control.Else
+		v.Global.sgroup.Set("None")
+	f.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+Gui.form.tabs.SetTab(0)
+
+'set the anchors
+F.Intrinsic.Control.CallSub(setanchors)
+
+'call the load sub
+f.Intrinsic.Control.CallSub(load)
+
+'display the form
+gui.Form..Visible(true)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4755_OrderDash.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.SetAnchors.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	'0 - None
+	'1 - Top
+	'2 - Bottom
+	'4 - Left
+	'8 - Right
+
+	gui.Form.lblText.anchor(1)
+'	Gui.form.picGSSLogo.Anchor(1)
+	Gui.form.lblLoading.Anchor(5)
+	Gui.form.progbar.Anchor(5)
+	gui.Form.framePermissions.Anchor(9)
+	Gui.form.frameCutoff.Anchor(9)
+	Gui.form.framePermissions.Anchor(9)
+	gui.Form.cmdRefresh.anchor(9)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.SetAnchors.End
+
+Program.Sub.Form_UnLoad.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+	F.ODBC.Connection!conx.Close
+	F.Intrinsic.Control.End 
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdRefresh_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	'hide the grids
+	gui.Form.GsGArchived.visible(false)
+	gui.Form.GsGCurrent.visible(false)
+	
+	Gui.form.progbar.Min(0)
+	Gui.form.progbar.Max(100)
+	Gui.form.progbar.Value(15)
+	
+	'show the loading label and text
+	gui.Form.lblLoading.Visible(true)
+	gui.Form.progbar.Visible(true)
+	
+	'close all datatables, dataviews, gridvies
+	'DTORDERS
+	F.Intrinsic.Control.If(V.DataTable.dtOrders.Exists)
+		F.Data.Datatable.Close("dtOrders")
+	F.Intrinsic.Control.EndIf	
+	'DTARCHIVE
+	F.Intrinsic.Control.If(V.DataTable.dtArchive.Exists)
+		F.Data.Datatable.Close("dtArchive")
+	F.Intrinsic.Control.EndIf	
+		
+	f.Intrinsic.Control.CallSub(Load)
+	
+	Gui.form.progbar.Value(100)	
+	
+	'show the loading label and text
+	gui.Form.lblLoading.Visible(false)
+	gui.Form.progbar.Visible(false)
+	gui.Form.GsGArchived.visible(true)
+	gui.Form.GsGCurrent.visible(true)	
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.Load.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.ssql.Declare(String)
+	v.Local.selements.Declare(String)
+	v.Local.suploaddata.Declare(string)
+	v.Local.suploadtypes.Declare(String)
+	v.Local.irow.Declare(long)
+	
+	v.Local.ssql.set("Select RTRIM(RECNUM) as RECNUM, RTRIM(ORDER_DATE) as ORDER_DATE, RTRIM(ORDER_TIME) as ORDER_TIME, RTRIM(CUSTOMER_NAME) AS CUSTOMER_NAME, RTRIM(PO_NUMBER) as PO_NUMBER, RTRIM(PROD_TYPE) as PROD_TYPE, RTRIM(PLANT) as PLANT, RTRIM(NOTES) as NOTES, RTRIM(CUSTOMER_CODE) as CUSTOMER_CODE, RTRIM(ORDER_NUMBER) as ORDER_NUMBER, RTRIM(QUOTE_NUMBER) as QUOTE_NUMBER, RTRIM(PERSON) as Person, RTRIM(CREATED) as CREATED from GCG_4755_CURRENT ORDER BY ORDER_DATE, ORDER_TIME ASC")
+	'see if blank
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.sSQL)
+	 F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,True)	
+		 'build the header titles
+		v.Local.selements.set("RECNUM*!*ORDER_DATE*!*ORDER_TIME*!*CUSTOMER_NAME*!*PO_NUMBER*!*PROD_TYPE*!*PLANT*!*NOTES*!*CUSTOMER_CODE*!*CUSTBROWSE*!*CREATE_ORDER*!*SELECT_QUOTE*!*ORDER_NUMBER*!*QUOTE_NUMBER*!*Person*!*Created")
+		'create the datatable
+		v.Local.suploadtypes.set("LONG*!*date*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*String")
+		v.Local.suploaddata.Set("0*!*01/01/1900*!**!**!**!**!**!**!**!**!**!**!**!**!**!*")
+		F.Data.DataTable.CreateFromString("DTOrders",v.Local.suploaddata,V.Local.selements,V.Local.suploadtypes,"*!*","@!@",True)
+		f.Data.DataView.Create("DTOrders","DVOrders")
+		'clear the datatable
+		f.Data.DataTable.DeleteRow("dtorders")
+		f.Data.DataTable.AddRow("dtorders","CUSTOMER_NAME","")
+	 f.Intrinsic.Control.Else
+	 	f.Data.DataTable.CreateFromSQL("dtorders","conx",v.Local.ssql,True) 	
+		f.Data.DataTable.AddColumn("dtorders","CUSTBROWSE","string","")	
+		f.Data.DataTable.AddColumn("dtorders","CREATE_ORDER","string","")	 	
+		f.Data.DataTable.AddColumn("dtorders","SELECT_QUOTE","string","")	 	
+		f.Data.DataView.Create("DTOrders","DVOrders")		
+	 f.Intrinsic.Control.EndIf
+	f.ODBC.conx!rst.Close
+	
+	Gui.form.progbar.Value(30)
+	
+ 	v.Local.ssql.set("Select * from GCG_4755_Archive ORDER BY ORDER_DATE ASC")
+	'see if blank
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.sSQL)
+	 F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)	
+	 	f.Data.DataTable.CreateFromSQL("dtArchive","conx",v.Local.ssql,True) 		 	
+		f.Data.DataView.Create("DTArchive","DVArchive")
+	f.Intrinsic.Control.Else
+		 'build the header titles
+		v.Local.selements.set("RECNUM*!*ORDER_DATE*!*ORDER_TIME*!*CUSTOMER_NAME*!*PO_NUMBER*!*PROD_TYPE*!*PLANT*!*NOTES*!*CUSTOMER_CODE*!*ORDER_NUMBER*!*QUOTE_NUMBER*!*Person*!*Created")
+		'create the datatable
+		v.Local.suploadtypes.set("LONG*!*date*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string*!*string")
+		v.Local.suploaddata.Set("0*!*01/01/1900*!**!**!**!**!**!**!**!**!**!**!*")
+		F.Data.DataTable.CreateFromString("DTArchive",v.Local.suploaddata,V.Local.selements,V.Local.suploadtypes,"*!*","@!@",True)
+		f.Data.DataView.Create("DTArchive","DVArchive")
+		'clear the datatable
+		f.Data.DataTable.DeleteRow("dtArchive")
+	 f.Intrinsic.Control.EndIf
+	f.ODBC.conx!rst.Close
+	
+	Gui.form.progbar.Value(45)	
+	
+	f.Intrinsic.Control.If(v.Global.bcontext,=,False)
+		'add the context menus
+		Gui.Form..ContextMenuCreate("ctxOrders")
+		Gui.Form.GsGCurrent.ContextMenuAttach("ctxOrders")
+		Gui.Form..ContextMenuAddItem("ctxOrders","Copy",0,"Copy")
+		Gui.Form..ContextMenuAddItem("ctxOrders","Archive",0,"Archive")
+		Gui.Form..ContextMenuSetItemEventHandler("ctxOrders","Copy","Copy")
+		Gui.Form..ContextMenuSetItemEventHandler("ctxOrders","Archive","Archive")
+		'add the context menus
+		Gui.Form..ContextMenuCreate("ctxArchive")
+		Gui.Form.GsGArchived.ContextMenuAttach("ctxArchive")
+		Gui.Form..ContextMenuAddItem("ctxArchive","Delete",0,"Delete")
+		Gui.Form..ContextMenuSetItemEventHandler("ctxArchive","Delete","Delete")
+	
+	f.Intrinsic.Control.Endif	
+	v.Global.bcontext.Set(True)
+	
+	
+	
+	f.intrinsic.Control.CallSub(formatgrid)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.Load.End
+
+Program.Sub.GsGridControl1_RowClick.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.irow.Declare(long)
+	v.Local.stime.Declare(string)
+	v.Local.sclick.Declare(String)
+	v.Local.ssql.Declare(string)
+	v.Local.sclick.Set(v.Args.button)
+	v.Local.iret.Declare(long)
+	v.Local.iretarch.Declare(long)
+
+	f.Intrinsic.Control.If(v.Args.x,>,100)
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.Local.sclick,<>,"Right")
+	'make sure the user is not a part of the orders group
+	f.Intrinsic.Control.AndIf(v.global.sGroup,<>,"Orders")
+	f.Intrinsic.Control.andif(v.Global.sGroup,<>,"None")
+		'check the current table
+		v.Local.ssql.set("SELECT MAX(RECNUM) as RECNUM from GCG_4755_CURRENT")
+		f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.iret)
+		'check the archived table
+		v.Local.ssql.set("SELECT MAX(RECNUM) as RECNUM from GCG_4755_ARCHIVE")
+		f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.iretarch)
+		
+		'get the highest record number
+		f.Intrinsic.Control.If(v.Local.iretarch,>,v.Local.iret)
+			f.Intrinsic.Math.Add(v.local.iretarch,1,v.Local.iret)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.Math.Add(v.local.iret,1,v.Local.iret)
+		f.Intrinsic.Control.EndIf
+
+		'putting date/times in dt is tricky, so just going to delete the date on the first half of the value
+		f.Intrinsic.String.Split(v.ambient.Now.timecomp," ",v.Local.stime)
+		f.Intrinsic.String.Build("{0} {1}",v.Local.stime(0),v.Local.stime(1),v.Local.stime)
+		'add a row, then go through and delete any rows with blank order dates
+		f.Data.DataTable.AddRow("dtorders","RECNUM",v.Local.iret,"ORDER_DATE",v.Ambient.Date,"ORDER_TIME",v.local.stime)
+		
+		f.Intrinsic.Control.For(v.Local.irow,0,v.DataTable.DTOrders.RowCount--,1)
+			f.Intrinsic.Control.If(v.DataTable.DTOrders(v.Local.irow).ORDER_DATE.fieldvaltrim,=,"")
+				f.Data.DataTable.DeleteRow("dtorders",v.Local.irow)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.Next(v.Local.irow)	
+		
+	f.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGridControl1_RowClick.End
+
+Program.Sub.FormatGrid.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	'set gv properties
+	Gui.form.GsGCurrent.AddGridviewFromDataview("GVOrders","DTOrders","DVOrders")
+	Gui.form.GsGCurrent.SetGridViewProperty("GVOrders","MultiSelect",True)
+	Gui.form.GsGCurrent.setGridViewProperty("GVOrders","AllowSort",True)
+	Gui.form.GsGCurrent.setGridViewProperty("GVOrders","AllowFilter",True)
+	Gui.form.GsGCurrent.setGridViewProperty("GVOrders","OptionsDetailShowDetailTabs",False)
+	Gui.form.GsGCurrent.setGridViewProperty("GVOrders","OptionsViewShowGroupPanel",True)
+	Gui.form.GsGCurrent.SetGridViewProperty("GVOrders","EnableAppearanceOddRow",True)
+	Gui.form.GsGCurrent.SetGridviewProperty("GVOrders","Editable",True)
+	gui.Form.GsGCurrent.SetGridviewProperty("gvOrders","OptionsViewShowAutoFilterRow",True)
+	
+	f.Intrinsic.control.If(v.Global.sGroup,=,"LogPO")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","Readonly","False")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","allowedit","True")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","allowedit","True")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","allowedit","false")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Create_ORDER","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","allowedit","False")				
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","Readonly","false")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")		
+	f.Intrinsic.Control.Elseif(v.Global.sGroup,=,"Orders")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","Readonly","True")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","allowedit","False")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","allowedit","False")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","allowedit","False")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","allowedit","false")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Create_ORDER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","allowedit","False")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","allowedit","False")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","allowedit","False")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")		
+		
+	f.Intrinsic.Control.ElseIf(v.Global.sgroup,=,"Both")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","Readonly","False")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","allowedit","True")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","allowedit","True")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","allowedit","false")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Create_ORDER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","allowedit","False")				
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","allowedit","True")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","Readonly","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","allowedit","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")	
+	f.Intrinsic.Control.ElseIf(v.Global.sgroup,=,"None")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","Readonly","True")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","allowedit","False")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","allowedit","False")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","allowedit","False")			
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","Readonly","false")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","allowedit","true")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","Readonly","true")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","allowedit","false")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Create_ORDER","Readonly","false")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","allowedit","true")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","Readonly","false")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","allowedit","true")		
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","allowedit","False")
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","Readonly","True")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","allowedit","False")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Readonly","false")	
+		Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","allowedit","true")	
+	
+	f.Intrinsic.Control.EndIf
+	
+	'allign headers
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","headerHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","HeaderHAlignment","Center")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_NUMBER","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_NUMBER","Cellforecolor","Blue")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","HeaderHAlignment","Center")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Cellforecolor","Blue")		
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Person","HeaderHAlignment","Center")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATED","HeaderHAlignment","Center")	
+	
+	'captions
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","Caption","Order Date")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","Caption","Order Time")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","Caption","Customer Name")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","Caption","PO Number")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","Caption","Prod. Type")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","Caption","Plant")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","Caption","Notes")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","Caption","Customer Code")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","Caption","Cust.")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","Caption","Create Order")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","Caption","Select Quote")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_NUMBER","Caption","Order")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Caption","Quote")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Person","Caption","User")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATED","Caption","Created")	
+	
+	'bold the headers
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","HeaderFontBold",True)	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","HeaderFontBold",True)	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_NUMBER","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","HeaderFontBold",True)	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Person","HeaderFontBold",True)
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATED","HeaderFontBold",True)	
+	
+	'set the witdths and custom displays
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_Time","Width","150")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","Width","200")		
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","Width","100")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","Width","500")		
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","Width","200")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Create_ORDER","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Select_Quote","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_NUMBER","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Person","Width","100")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATED","Width","150")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","Width","150")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","displaycustomdatetime","d")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","RECNUM","visible",false)	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","Width","125")
+	
+	'set the visible indexes
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Order_DATE","VisibleIndex","0")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_TIME","VisibleIndex","1")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_NAME","VisibleIndex","2")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PO_NUMBER","VisibleIndex","3")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PROD_TYPE","VisibleIndex","4")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","PLANT","VisibleIndex","5")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","NOTES","VisibleIndex","6")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTOMER_CODE","VisibleIndex","7")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CUSTBROWSE","VisibleIndex","8")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATE_ORDER","VisibleIndex","9")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","SELECT_QUOTE","VisibleIndex","10")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","ORDER_NUMBER","VisibleIndex","11")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","QUOTE_NUMBER","VisibleIndex","12")	
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","Person","VisibleIndex","13")
+	Gui.form.GsGCurrent.SetColumnProperty("GVOrders","CREATED","VisibleIndex","14")		
+	
+	'edit the columns to be ddl or buttons 
+	gui.Form.GsGCurrent.ColumnEdit("gvOrders","PROD_TYPE","DropDownList","Stock*!*Custom*!*Release*!*Digital*!*Warehouse*!*Ribbon*!*New*!*PPL*!*Prime")
+	gui.Form.GsGCurrent.ColumnEdit("gvOrders","CustBrowse","EditorButton","Browse")	
+	gui.Form.GsGCurrent.ColumnEdit("gvOrders","CREATE_ORDER","EditorButton","Create")		
+	gui.Form.GsGCurrent.ColumnEdit("gvOrders","SELECT_QUOTE","EditorButton","Select")			
+	gui.form.GsGCurrent.MainView("GVOrders")
+	
+	Gui.form.progbar.Value(60)	
+
+	'///////////////////////ARCHIVE GRID CONTROL
+	'set gv properties
+	Gui.form.gSGaRCHIVED.AddGridviewFromDataview("GVARCHIVE","DTArchive","DVArchive")
+	Gui.form.gSGaRCHIVED.SetGridViewProperty("GVARCHIVE","MultiSelect",True)
+	Gui.form.gSGaRCHIVED.setGridViewProperty("GVARCHIVE","AllowSort",True)
+	Gui.form.gSGaRCHIVED.setGridViewProperty("GVARCHIVE","AllowFilter",True)
+	Gui.form.gSGaRCHIVED.setGridViewProperty("GVARCHIVE","OptionsDetailShowDetailTabs",False)
+	Gui.form.gSGaRCHIVED.setGridViewProperty("GVARCHIVE","OptionsViewShowGroupPanel",True)
+	Gui.form.gSGaRCHIVED.SetGridViewProperty("GVARCHIVE","EnableAppearanceOddRow",True)
+	gui.Form.GsGArchived.SetGridviewProperty("gvArchive","OptionsViewShowAutoFilterRow",True)
+	Gui.form.gSGaRCHIVED.SetGridviewProperty("GVARCHIVE","Editable",True)
+	
+	'allow edits
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","Readonly","True")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_TIME","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","allowedit","False")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_TIME","allowedit","False")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","allowedit","False")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","allowedit","False")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","allowedit","false")				
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","allowedit","false")		
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","allowedit","false")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","allowedit","False")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","allowedit","False")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","Readonly","True")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","allowedit","False")		
+	
+	'allign headers
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","headerHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_TIME","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","Cellforecolor","Blue")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","HeaderHAlignment","Center")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","Cellforecolor","Blue")		
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Person","HeaderHAlignment","Center")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CREATED","HeaderHAlignment","Center")	
+	
+	'captions
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","Caption","Order Date")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_TIME","Caption","Order Time")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","Caption","Customer Name")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","Caption","PO Number")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","Caption","Prod. Type")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","Caption","Plant")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","Caption","Notes")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","Caption","Customer Code")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","Caption","Order")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","Caption","Quote")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Person","Caption","User")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CREATED","Caption","Created")	
+	
+	'bold the headers
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_TIME","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","HeaderFontBold",True)	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Person","HeaderFontBold",True)
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CREATED","HeaderFontBold",True)	
+	
+	'set the witdths and custom displays
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","Width","150")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_Time","Width","150")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","Width","200")		
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","Width","150")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","Width","150")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","Width","100")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","Width","500")		
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","Width","175")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","Width","125")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Person","Width","100")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CREATED","Width","200")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","Width","100")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","displaycustomdatetime","d")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","RECNUM","visible",false)	
+	
+	'set the visible indexes
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Order_DATE","VisibleIndex","0")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_TIME","VisibleIndex","1")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_NAME","VisibleIndex","2")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PO_NUMBER","VisibleIndex","3")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PROD_TYPE","VisibleIndex","4")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","PLANT","VisibleIndex","5")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","NOTES","VisibleIndex","6")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CUSTOMER_CODE","VisibleIndex","7")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","ORDER_NUMBER","VisibleIndex","8")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","QUOTE_NUMBER","VisibleIndex","9")	
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","Person","VisibleIndex","10")
+	Gui.form.gSGaRCHIVED.SetColumnProperty("GVARCHIVE","CREATED","VisibleIndex","11")		
+			
+	gui.form.GsGArchived.MainView("GVARCHIVE")
+	
+	Gui.form.progbar.Value(75)	
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.FormatGrid.End
+
+Program.Sub.GsGCurrent_RowCellClick.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.sqte.Declare(String)
+	v.Local.sret.Declare(string)
+	Variable.Local.sTemp.Declare(string)
+	Variable.Local.sTitles.Declare(string)
+	Variable.Local.iWidths.Declare(long)
+	v.Local.sorder.Declare(String)
+	v.Local.scust.Declare(String)
+	v.Local.sparams.Declare(String)
+	v.Local.stype.Declare(string)
+	v.Local.srow.Declare(string)
+	v.Local.ssql.Declare(String)
+	v.Local.irow.Declare(long)
+	v.Local.sfile.Declare(String)
+	v.Local.i.Declare(long)
+	v.Local.sblanketfile.Declare(string)
+	v.Local.sblanket.Declare(string)
+	v.Local.scustname.Declare(string)
+	v.Local.splant.Declare(string)
+	v.Local.bexists.Declare(boolean)
+	
+	'build the PO file to write to
+	f.Intrinsic.String.Build("{0}\{1}",v.caller.FilesDir,"4755PO.txt",v.Local.sfile)
+	'build the PO file to write to
+	f.Intrinsic.String.Build("{0}\{1}",v.caller.FilesDir,"4755Blanket.txt",v.Local.sblanketfile)	
+
+	F.Intrinsic.Control.SelectCase(v.Args.Column)
+		'check to see if the user clicked the quote number
+		F.Intrinsic.Control.Case("QUOTE_NUMBER")
+			'make sure the user is not a part of the log po group
+			f.Intrinsic.Control.If(v.Global.sGroup,<>,"LogPO")
+			f.Intrinsic.Control.AndIf(v.Global.sGroup,<>,"None")
+				f.Intrinsic.Control.BlockEvents
+				Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","QUOTE_Number",v.Args.RowIndex,v.Local.sQte)
+				'if its not equal to blank open up the standard screen based on the view/edit options
+				f.Intrinsic.Control.If(v.Local.sqte,<>,"")
+					F.Intrinsic.String.ConcatCallWrapperArgs(V.Local.sQte,"O","*!*ZDR*!*",V.Local.sParams)
+					F.Global.General.CallWrapperSync(251000,V.Local.sParams)
+					
+					f.Intrinsic.String.Build("SElect TOP 1(ORDER_NO) from V_ORDER_HEADER where DATE_ORDER = '{0}' and QUOTE = '{1}' and DATE_LAST_CHG = '{0}' order by TIME_LAST_CHG desc",v.Ambient.Date.PervasiveDate,v.Local.sqte,v.Local.ssql)
+					f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.sorder)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"ORDER_NUMBER",v.Local.sorder.trim)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"Person",v.Caller.User.trim)		
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"CREATED",v.Ambient.Now.trim)
+					
+					v.Local.irow.Set(v.Args.rowindex)
+					f.Data.DataTable.AddRow("dtArchive","RECNUM",v.DataTable.dtorders(v.local.irow).RECNUM.fieldvaltrim,"ORDER_DATE",v.DataTable.dtorders(v.local.irow).ORDER_DATE.fieldvaltrim,"ORDER_TIME",v.DataTable.dtorders(v.local.irow).ORDER_TIME.fieldvaltrim,"CUSTOMER_NAME",v.DataTable.dtorders(v.local.irow).CUSTOMER_NAME.fieldvaltrim,"PO_NUMBER",v.DataTable.dtorders(v.local.irow).PO_NUMBER.fieldvaltrim,"PROD_TYPE",v.DataTable.dtorders(v.local.irow).PROD_TYPE.fieldvaltrim,"PLANT",v.DataTable.dtorders(v.local.irow).PLANT.fieldvaltrim,"NOTES",v.DataTable.dtorders(v.local.irow).NOTES.fieldvaltrim,"CUSTOMER_CODE",v.DataTable.dtorders(v.local.irow).CUSTOMER_CODE.fieldvaltrim,"ORDER_NUMBER",v.DataTable.dtorders(v.local.irow).ORDER_NUMBER.fieldvaltrim,"QUOTE_NUMBER",v.DataTable.dtorders(v.local.irow).QUOTE_NUMBER.fieldvaltrim,"Person",v.DataTable.dtorders(v.local.irow).Person.fieldvaltrim,"CREATED",v.DataTable.dtorders(v.local.irow).CREATED.fieldvaltrim)
+					f.Intrinsic.string.Build("delete from GCG_4755_Current where RECNUM = '{0}'",v.DataTable.dtorders(v.args.rowindex).RECNUM.fieldvaltrim,v.Local.ssql)
+					f.Data.DataTable.DeleteRow("dtorders",v.local.irow)		
+					f.ODBC.Connection!conx.execute(v.Local.ssql)
+					'save the data
+					f.Intrinsic.Control.CallSub(cmdsave_click)
+					
+				f.Intrinsic.Control.EndIf
+				f.Intrinsic.Control.UnBlockEvents
+
+			f.Intrinsic.Control.Else
+				f.Intrinsic.Control.BlockEvents
+				Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","QUOTE_Number",v.Args.RowIndex,v.Local.sQte)
+				'if its not equal to blank open up the standard screen based on the view/edit options
+				f.Intrinsic.Control.If(v.Local.sqte,<>,"")
+					F.Intrinsic.String.ConcatCallWrapperArgs(V.Local.sQte,"V","*!*ZDR*!*",V.Local.sParams)
+					F.Global.General.CallWrapperASync(251000,V.Local.sParams)
+				f.Intrinsic.Control.EndIf
+				f.Intrinsic.Control.UnBlockEvents	
+				
+			f.Intrinsic.Control.EndIf
+		'if customer code, launch the customer browser
+		F.Intrinsic.Control.Case("CUSTBROWSE")		
+			f.Intrinsic.Control.If(v.Global.sGroup,<>,"None")
+				f.Intrinsic.Control.BlockEvents
+				Function.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+				Function.Intrinsic.UI.Browser(205, "", Variable.Local.sRet)
+				Function.Intrinsic.Control.If(Variable.Local.sRet,"=","***CANCEL***")
+					 Function.Intrinsic.UI.Msgbox("No customer was selected!")
+				Function.Intrinsic.Control.Else
+					Function.Intrinsic.String.Split(Variable.Local.sRet,"*!*",Variable.Local.sRet)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"CUSTOMER_NAME",v.Local.sret(1).trim)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"CUSTOMER_Code",v.Local.sret(0).trim)
+				Function.Intrinsic.Control.EndIf
+				f.Intrinsic.Control.UnBlockEvents
+				'save the data
+				f.Intrinsic.Control.CallSub(cmdsave_click)
+			f.Intrinsic.Control.EndIf
+		'show the browser for quote selection
+		F.Intrinsic.Control.Case("SELECT_QUOTE")	
+			'make sure the user is not a part of the log po group
+				f.Intrinsic.Control.BlockEvents
+				Function.Intrinsic.String.Split("Quote*!*Customer","*!*",variable.local.sTitles)
+				Function.Intrinsic.String.Split("3000*!*3000","*!*",variable.local.iWidths)
+				Function.Intrinsic.UI.Browser("Select a location","conx","Select  QUOTE_NO as QUOTE, CUSTOMER as Customer From V_Quote_Header order by QUOTE_NO",Variable.Local.sTitles,Variable.Local.iWidths,Variable.Local.sRet)
+				Function.Intrinsic.Control.If(Variable.Local.sRet,"=","***CANCEL***")
+				 	Function.Intrinsic.UI.Msgbox("No quote was selected!")
+				Function.Intrinsic.Control.Else
+				 	Function.Intrinsic.String.Split(Variable.Local.sRet,"*!*",Variable.Local.sRet)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"QUOTE_NUMBER",v.Local.sret(0).trim)
+				Function.Intrinsic.Control.EndIf
+				f.Intrinsic.Control.UnBlockEvents		
+				
+				f.Intrinsic.Control.CallSub(cmdSave_click)		
+		'if customer code, launch the location browser
+		F.Intrinsic.Control.Case("CREATE_ORDER")	
+			'check to see if the customer code is blank
+			Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","CUSTOMER_CODE",v.Args.RowIndex,v.Local.scust)
+			f.Intrinsic.Control.If(v.Local.scust,=,"")
+				F.Intrinsic.UI.Msgbox("Please select a customer")
+			f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf
+			
+			f.Intrinsic.Control.BlockEvents
+			Gui.form.GsGCcurrent.GetCellValueByColumnName("gvOrders","ORDER_NUMBER",v.Args.RowIndex,v.Local.sORDER)
+			Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","PROD_TYPE",v.Args.RowIndex,v.Local.stype)		
+			Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","PO_NUMBER",v.Args.RowIndex,v.Global.spo)	
+			Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","CUSTOMER_NAME",v.Args.RowIndex,v.local.scustname)		
+			Gui.form.GsGCurrent.GetCellValueByColumnName("gvOrders","PLANT",v.Args.RowIndex,v.local.splant)		
+			
+			f.Intrinsic.String.Build("{0}*!*{1}",v.Global.spo,v.Local.splant,v.Global.spo)
+			f.Intrinsic.File.String2File(v.Local.sfile,v.Global.spo)
+			
+			'check to see if this is a blanket release
+			f.Intrinsic.Control.If(v.Local.stype,=,"Release")
+
+				f.Intrinsic.File.Exists(v.Local.sblanketfile,v.Local.bexists)
+				f.Intrinsic.String.build("{0}*!*{1}",v.Local.scustname,v.Local.scust,v.Local.sblanket)
+				f.Intrinsic.File.String2File(v.Local.sblanketfile,v.local.sblanket)
+				f.Global.General.LaunchMenuTask(132,5,v.Local.i)
+				f.Intrinsic.UI.Sleep(10)
+				f.Intrinsic.Control.Try
+				f.Intrinsic.File.DeleteFile(v.Local.sblanketfile)
+				f.Intrinsic.Control.Catch
+				f.Intrinsic.Control.EndTry
+				f.Intrinsic.Control.dountil(v.Local.bexists,=,True)
+					f.Intrinsic.File.Exists(v.Local.sblanketfile,v.Local.bexists)
+				f.Intrinsic.Control.Loop
+				
+				f.Intrinsic.Control.UnBlockEvents		
+				
+				'read the file and place the new blanket order number in the order field then delete the file
+				f.Intrinsic.File.File2String(v.Local.sblanketfile,v.Local.sorder)
+				f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"ORDER_NUMBER",v.Local.sorder)
+				f.Intrinsic.Control.Try
+				f.Intrinsic.File.DeleteFile(v.Local.sblanketfile)
+				f.Intrinsic.Control.Catch
+				f.Intrinsic.Control.EndTry				
+				v.Global.bordersave.Set(true)
+				v.Local.irow.Set(v.Args.rowindex)
+				f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"Person",v.Caller.User.trim)		
+				f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"CREATED",v.Ambient.Now.trim)				
+				f.Intrinsic.string.Build("delete from GCG_4755_Current where RECNUM = '{0}'",v.DataTable.dtorders(v.local.irow).RECNUM.fieldvaltrim,v.Local.ssql)
+				f.Data.DataTable.AddRow("dtArchive","RECNUM",v.DataTable.dtorders(v.local.irow).RECNUM.fieldvaltrim,"ORDER_DATE",v.DataTable.dtorders(v.local.irow).ORDER_DATE.fieldvaltrim,"ORDER_TIME",v.DataTable.dtorders(v.local.irow).ORDER_TIME.fieldvaltrim,"CUSTOMER_NAME",v.DataTable.dtorders(v.local.irow).CUSTOMER_NAME.fieldvaltrim,"PO_NUMBER",v.DataTable.dtorders(v.local.irow).PO_NUMBER.fieldvaltrim,"PROD_TYPE",v.DataTable.dtorders(v.local.irow).PROD_TYPE.fieldvaltrim,"PLANT",v.DataTable.dtorders(v.local.irow).PLANT.fieldvaltrim,"NOTES",v.DataTable.dtorders(v.local.irow).NOTES.fieldvaltrim,"CUSTOMER_CODE",v.DataTable.dtorders(v.local.irow).CUSTOMER_CODE.fieldvaltrim,"ORDER_NUMBER",v.DataTable.dtorders(v.local.irow).ORDER_NUMBER.fieldvaltrim,"QUOTE_NUMBER",v.DataTable.dtorders(v.local.irow).QUOTE_NUMBER.fieldvaltrim,"Person",v.DataTable.dtorders(v.local.irow).Person.fieldvaltrim,"CREATED",v.DataTable.dtorders(v.local.irow).CREATED.fieldvaltrim)
+				f.Data.DataTable.DeleteRow("dtorders",v.local.irow)		
+				f.ODBC.Connection!conx.execute(v.Local.ssql)				
+				'save the data
+				f.Intrinsic.Control.CallSub(cmdsave_click)
+				
+				v.Global.bordersave.Set(False)
+		
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.Else
+				'if its not equal to blank open up the standard screen based on the view/edit option
+				f.Intrinsic.Control.If(v.Local.sorder,=,"")
+					f.Intrinsic.String.Build("{0}!*!{1}!*!{2}","","N",v.Local.scust,v.Local.sparams)
+					F.Global.General.CallWrapperSync(200000,V.Local.sParams)
+					v.Local.sorder.Set( v.ambient.callwrapperreturn)
+					f.Intrinsic.String.Split(v.Local.sorder,"*!*",v.Local.sorder)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"ORDER_NUMBER",v.Local.sorder(28).trim)
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"Person",v.Caller.User.trim)		
+					f.Data.DataTable.SetValue("dtOrders",v.Args.rowindex,"CREATED",v.Ambient.Now.trim)
+				f.Intrinsic.Control.EndIf
+			f.Intrinsic.Control.EndIf
+			f.Intrinsic.Control.UnBlockEvents
+			v.Local.irow.Set(v.args.rowindex)
+			'move the row to the archived datatable
+				v.Global.bordersave.Set(true)
+				f.Intrinsic.string.Build("delete from GCG_4755_Current where RECNUM = '{0}'",v.DataTable.dtorders(v.local.irow).RECNUM.fieldvaltrim,v.Local.ssql)
+				f.Data.DataTable.AddRow("dtArchive","RECNUM",v.DataTable.dtorders(v.local.irow).RECNUM.fieldvaltrim,"ORDER_DATE",v.DataTable.dtorders(v.local.irow).ORDER_DATE.fieldvaltrim,"ORDER_TIME",v.DataTable.dtorders(v.local.irow).ORDER_TIME.fieldvaltrim,"CUSTOMER_NAME",v.DataTable.dtorders(v.local.irow).CUSTOMER_NAME.fieldvaltrim,"PO_NUMBER",v.DataTable.dtorders(v.local.irow).PO_NUMBER.fieldvaltrim,"PROD_TYPE",v.DataTable.dtorders(v.local.irow).PROD_TYPE.fieldvaltrim,"PLANT",v.DataTable.dtorders(v.local.irow).PLANT.fieldvaltrim,"NOTES",v.DataTable.dtorders(v.local.irow).NOTES.fieldvaltrim,"CUSTOMER_CODE",v.DataTable.dtorders(v.local.irow).CUSTOMER_CODE.fieldvaltrim,"ORDER_NUMBER",v.DataTable.dtorders(v.local.irow).ORDER_NUMBER.fieldvaltrim,"QUOTE_NUMBER",v.DataTable.dtorders(v.local.irow).QUOTE_NUMBER.fieldvaltrim,"Person",v.DataTable.dtorders(v.local.irow).Person.fieldvaltrim,"CREATED",v.DataTable.dtorders(v.local.irow).CREATED.fieldvaltrim)
+				f.Data.DataTable.DeleteRow("dtorders",v.local.irow)		
+				f.ODBC.Connection!conx.execute(v.Local.ssql)
+				'save the data
+				f.Intrinsic.Control.CallSub(cmdsave_click)
+				v.Global.bordersave.Set(False)
+		F.Intrinsic.Control.EndSelect
+		F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGCurrent_RowCellClick.End
+
+Program.Sub.Copy.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.srow.Declare(string)
+	v.Local.iret.Declare(long)
+	v.Local.iretarch.Declare(long)
+	v.Local.ssql.declare(string)
+	
+	f.Intrinsic.Control.If(v.Global.sGroup,<>,"None")
+		'check the current table
+		v.Local.ssql.set("SELECT MAX(RECNUM) as RECNUM from GCG_4755_CURRENT")
+		f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.iret)
+		'check the archived table
+		v.Local.ssql.set("SELECT MAX(RECNUM) as RECNUM from GCG_4755_ARCHIVE")
+		f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.iretarch)
+		
+		'get the highest record number
+		f.Intrinsic.Control.If(v.Local.iretarch,>,v.Local.iret)
+			f.Intrinsic.Math.Add(v.local.iretarch,1,v.Local.iret)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.Math.Add(v.local.iret,1,v.Local.iret)
+		f.Intrinsic.Control.EndIf
+		
+		'copy the data and add it to the orders gridview
+		gui.Form.GsGCurrent.GetSelectedRows("gvOrders",v.Local.srow)
+		f.Intrinsic.Control.If(v.local.srow,<>,"")
+			f.Intrinsic.String.Split(v.Local.srow,"*!*",v.Local.srow)	
+			f.Data.DataTable.AddRow("dtOrders","RECNUM",v.local.iret,"ORDER_DATE",v.DataTable.dtorders(v.local.srow).ORDER_DATE.fieldvaltrim,"ORDER_TIME",v.DataTable.dtorders(v.local.srow).ORDER_TIME.fieldvaltrim,"CUSTOMER_NAME",v.DataTable.dtorders(v.local.srow).CUSTOMER_NAME.fieldvaltrim,"PO_NUMBER",v.DataTable.dtorders(v.local.srow).PO_NUMBER.fieldvaltrim,"PROD_TYPE",v.DataTable.dtorders(v.local.srow).PROD_TYPE.fieldvaltrim,"PLANT",v.DataTable.dtorders(v.local.srow).PLANT.fieldvaltrim,"NOTES",v.DataTable.dtorders(v.local.srow).NOTES.fieldvaltrim,"CUSTOMER_CODE",v.DataTable.dtorders(v.local.srow).CUSTOMER_CODE.fieldvaltrim,"ORDER_NUMBER",v.DataTable.dtorders(v.local.srow).ORDER_NUMBER.fieldvaltrim,"QUOTE_NUMBER",v.DataTable.dtorders(v.local.srow).QUOTE_NUMBER.fieldvaltrim,"Person",v.DataTable.dtorders(v.local.srow).Person.fieldvaltrim,"CREATED",v.DataTable.dtorders(v.local.srow).CREATED.fieldvaltrim)
+		f.Intrinsic.Control.EndIf
+		
+		f.Intrinsic.Control.CallSub(cmdSave_click)
+	f.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.Copy.End
+
+Program.Sub.Delete.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.srow.Declare(string)
+	v.Local.ssql.Declare(string)
+	v.Local.srecnum.Declare(String)
+
+	f.Intrinsic.Control.If(v.Global.sGroup,<>,"None")
+		'delete the data from the archive grid
+		gui.Form.GsGArchived.GetSelectedRows("gvArchive",v.Local.srow)
+		f.Intrinsic.Control.If(v.local.srow,<>,"")
+			f.Intrinsic.String.Split(v.Local.srow,"*!*",v.Local.srow)	
+
+			v.Local.srecnum.Set(v.DataTable.dtArchive(v.local.srow).RECNUM.fieldvaltrim)
+			f.Intrinsic.String.Build("delete from GCG_4755_Archive where RECNUM = '{0}'",v.Local.srecnum,v.Local.ssql)
+			f.ODBC.Connection!conx.execute(v.Local.ssql)
+			
+			
+			f.Data.DataTable.DeleteRow("DTArchive",v.Local.srow)
+		f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.CallSub(cmdSave_click)
+	f.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.Delete.End
+
+Program.Sub.Archive.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.srow.Declare(string)
+	v.Local.ssql.Declare(String)
+	
+	f.Intrinsic.Control.If(v.Global.sGroup,<>,"None")
+		'move the row to the archived datatable
+		gui.Form.GsGCurrent.GetSelectedRows("gvOrders",v.Local.srow)
+		f.Intrinsic.Control.If(v.local.srow,<>,"")
+			f.Intrinsic.String.Split(v.Local.srow,"*!*",v.Local.srow)
+			f.Data.DataTable.AddRow("dtArchive","RECNUM",v.DataTable.dtorders(v.local.srow).RECNUM.fieldvaltrim,"ORDER_DATE",v.DataTable.dtorders(v.local.srow).ORDER_DATE.fieldvaltrim,"ORDER_TIME",v.DataTable.dtorders(v.local.srow).ORDER_TIME.fieldvaltrim,"CUSTOMER_NAME",v.DataTable.dtorders(v.local.srow).CUSTOMER_NAME.fieldvaltrim,"PO_NUMBER",v.DataTable.dtorders(v.local.srow).PO_NUMBER.fieldvaltrim,"PROD_TYPE",v.DataTable.dtorders(v.local.srow).PROD_TYPE.fieldvaltrim,"PLANT",v.DataTable.dtorders(v.local.srow).PLANT.fieldvaltrim,"NOTES",v.DataTable.dtorders(v.local.srow).NOTES.fieldvaltrim,"CUSTOMER_CODE",v.DataTable.dtorders(v.local.srow).CUSTOMER_CODE.fieldvaltrim,"ORDER_NUMBER",v.DataTable.dtorders(v.local.srow).ORDER_NUMBER.fieldvaltrim,"QUOTE_NUMBER",v.DataTable.dtorders(v.local.srow).QUOTE_NUMBER.fieldvaltrim,"Person",v.DataTable.dtorders(v.local.srow).Person.fieldvaltrim,"CREATED",v.DataTable.dtorders(v.local.srow).CREATED.fieldvaltrim)
+			f.Intrinsic.string.Build("delete from GCG_4755_Current where RECNUM = '{0}'",v.DataTable.dtorders(v.local.srow).RECNUM.fieldvaltrim,v.Local.ssql)
+			f.Data.DataTable.DeleteRow("dtorders",v.local.srow)		
+			f.ODBC.Connection!conx.execute(v.Local.ssql)
+			'save the data
+			f.Intrinsic.Control.CallSub(cmdsave_click)
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+	
+Program.Sub.Archive.End
+
+Program.Sub.GsGCurrent_CellValueChanged.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.ssql.Declare(String)
+	v.Local.sret.Declare(String)
+		F.Intrinsic.Control.SelectCase(v.Args.Column)
+		
+		F.Intrinsic.Control.Case("PO_NUMBER")
+			Gui.form.GsGCcurrent.GetCellValueByColumnName("gvOrders","PO_NUMBER",v.Args.RowIndex,v.Local.sret)
+			f.Intrinsic.Control.If(v.Local.sret,<>,"")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"PO_NUMBER",v.Local.sret.trim)
+			f.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Case("NOTES")
+			Gui.form.GsGCcurrent.GetCellValueByColumnName("gvOrders","NOTES",v.Args.RowIndex,v.Local.sret)
+			f.Intrinsic.Control.If(v.Local.sret,<>,"")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"NOTES",v.Local.sret.trim)
+			f.Intrinsic.Control.EndIf
+						
+		'check to see if the user clicked the quote number
+		F.Intrinsic.Control.Case("CUSTOMER_CODE")
+			f.Intrinsic.string.Build("Select NAME_CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER = '{0}'",v.DataTable.DTOrders(v.args.rowindex).CUSTOMER_CODE.fieldvaltrim,v.Local.ssql)
+			f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.sret)
+			f.Intrinsic.Control.If(v.Local.sret,<>,"")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"CUSTOMER_NAME",v.Local.sret.trim)
+			f.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Case("PLANT")	
+			f.Intrinsic.string.Build("Select LOCATION from V_LOCATIONS where LOCATION = '{0}'",v.DataTable.DTOrders(v.args.rowindex).PLANT.fieldvaltrim,v.Local.ssql)
+			f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.sret)
+			f.Intrinsic.Control.If(v.Local.sret,<>,"")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"PLANT",v.Local.sret.trim)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.UI.Msgbox("Location not found!")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"PLANT","")		
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Case("QUOTE_NUMBER")
+			f.Intrinsic.string.Build("Select QUOTE_NO from V_QUOTE_HEADER where QUOTE_NO = '{0}'",v.DataTable.DTOrders(v.args.rowindex).QUOTE_NUMBER.fieldvaltrim,v.Local.ssql)
+			f.ODBC.Connection!conx.executeandreturn(v.Local.ssql,v.Local.sret)
+			f.Intrinsic.Control.If(v.Local.sret,<>,"")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"QUOTE_NUMBER",v.Local.sret.trim)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.UI.Msgbox("Quote not found!")
+				f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"QUOTE_NUMBER","")				
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndSelect
+		f.Intrinsic.Control.CallSub(cmdSave_click)
+		F.Intrinsic.Control.Catch	
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGCurrent_CellValueChanged.End
+
+Program.Sub.LoadOrderNumber.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.sorder.Declare(String)
+	
+		v.Local.sorder.Set(v.Passed.000003)
+		f.Intrinsic.String.LPad(v.Local.sorder,"0",7,v.Local.sorder)
+		f.Data.DataTable.SetValue("dtorders",v.Args.rowindex,"ORDER_NUMBER",v.Local.sorder)
+		
+		F.Intrinsic.Control.Catch	
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadOrderNumber.End
+
+Program.Sub.cmdSave_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.sorder.Declare(String)
+	v.Local.ssql.Declare(string)
+
+'	v.Local.ssql.Set("Delete from GCG_4755_CURRENT")
+'	
+'	f.ODBC.Connection!conx.execute(v.Local.ssql)
+'	
+''	v.Local.ssql.Set("Delete from GCG_4755_ARCHIVE")
+'	
+'	f.ODBC.Connection!conx.execute(v.Local.ssql)
+		'save the datatables to the DB
+		f.Data.DataTable.SaveToDB("dtorders","conx","GCG_4755_CURRENT","RECNUM",256,"RECNUM@!@RECNUM*!*ORDER_DATE@!@ORDER_DATE*!*ORDER_TIME@!@ORDER_TIME*!*CUSTOMER_NAME@!@CUSTOMER_NAME*!*PO_NUMBER@!@PO_NUMBER*!*PROD_TYPE@!@PROD_TYPE*!*NOTES@!@NOTES*!*CUSTOMER_CODE@!@CUSTOMER_CODE*!*ORDER_NUMBER@!@ORDER_NUMBER*!*QUOTE_NUMBER@!@QUOTE_NUMBER*!*Person@!@Person*!*CREATED@!@CREATED*!*PLANT@!@PLANT")
+		f.Intrinsic.Control.If(v.DataTable.dtArchive.RowCount,>,1)
+'			v.Local.ssql.Set("Delete from GCG_4755_Archive")
+'			f.ODBC.Connection!conx.execute(v.Local.ssql)
+			'save the datatables to the DB
+			f.Data.DataTable.SaveToDB("dtArchive","conx","GCG_4755_Archive","RECNUM",256,"RECNUM@!@RECNUM*!*ORDER_DATE@!@ORDER_DATE*!*ORDER_TIME@!@ORDER_TIME*!*CUSTOMER_NAME@!@CUSTOMER_NAME*!*PO_NUMBER@!@PO_NUMBER*!*PROD_TYPE@!@PROD_TYPE*!*NOTES@!@NOTES*!*CUSTOMER_CODE@!@CUSTOMER_CODE*!*ORDER_NUMBER@!@ORDER_NUMBER*!*QUOTE_NUMBER@!@QUOTE_NUMBER*!*Person@!@Person*!*CREATED@!@CREATED*!*PLANT@!@PLANT")
+		f.Intrinsic.Control.ElseIf(v.Global.bordersave,=,True)
+'			v.Local.ssql.Set("Delete from GCG_4755_Archive")
+'			f.ODBC.Connection!conx.execute(v.Local.ssql)
+			'save the datatables to the DB
+			f.Data.DataTable.SaveToDB("dtArchive","conx","GCG_4755_Archive","RECNUM",256,"RECNUM@!@RECNUM*!*ORDER_DATE@!@ORDER_DATE*!*ORDER_TIME@!@ORDER_TIME*!*CUSTOMER_NAME@!@CUSTOMER_NAME*!*PO_NUMBER@!@PO_NUMBER*!*PROD_TYPE@!@PROD_TYPE*!*NOTES@!@NOTES*!*CUSTOMER_CODE@!@CUSTOMER_CODE*!*ORDER_NUMBER@!@ORDER_NUMBER*!*QUOTE_NUMBER@!@QUOTE_NUMBER*!*Person@!@Person*!*CREATED@!@CREATED*!*PLANT@!@PLANT")
+		f.Intrinsic.Control.EndIf
+		
+		
+		F.Intrinsic.Control.Catch	
+		F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+	F.Intrinsic.Control.EndTry
+
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.GsGArchived_RowCellClick.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+v.Local.sqte.Declare(String)
+v.Local.sret.Declare(string)
+Variable.Local.sTemp.Declare(string)
+Variable.Local.sTitles.Declare(string)
+Variable.Local.iWidths.Declare(long)
+v.Local.sorder.Declare(String)
+v.Local.scust.Declare(String)
+v.Local.sparams.Declare(String)
+v.Local.stype.Declare(string)
+v.Local.srow.Declare(string)
+
+F.Intrinsic.Control.SelectCase(v.Args.Column)
+	'check to see if the user clicked the quote number
+	F.Intrinsic.Control.Case("QUOTE_NUMBER")
+		f.Intrinsic.Control.BlockEvents
+		Gui.form.GsGArchived.GetCellValueByColumnName("gvArchive","QUOTE_Number",v.Args.RowIndex,v.Local.sQte)
+		'if its not equal to blank open up the standard screen based on the view/edit options
+		f.Intrinsic.Control.If(v.Local.sqte,<>,"")
+'			F.Intrinsic.Control.If(V.Screen.form!optView.Value)
+				F.Intrinsic.String.ConcatCallWrapperArgs(V.Local.sQte,"V","*!*ZDR*!*",V.Local.sParams)
+				F.Global.General.CallWrapperASync(251000,V.Local.sParams)
+		f.Intrinsic.Control.EndIf	
+		f.Intrinsic.Control.UnBlockEvents
+	F.Intrinsic.Control.Case("ORDER_NUMBER")	
+		'if order number, launch the standard order screen based on the options selected by the customer
+		f.Intrinsic.Control.BlockEvents
+		Gui.form.GsGARCHIVED.GetCellValueByColumnName("gvArchive","PO_NUMBER",v.Args.RowIndex,v.Global.spo)	
+		Gui.form.GsGARCHIVED.GetCellValueByColumnName("gvArchive","ORDER_NUMBER",v.Args.RowIndex,v.local.sorder)		
+		Gui.form.GsGARCHIVED.GetCellValueByColumnName("gvArchive","CUSTOMER_CODE",v.Args.RowIndex,v.local.scust)			
+		f.Intrinsic.Control.If(v.Local.sorder,<>,"")
+				f.Intrinsic.String.Build("{0}!*!{1}!*!{2}",v.Local.sorder,"V",v.Local.scust,v.Local.sparams)
+				F.Global.General.CallWrapperSync(200000,V.Local.sParams)
+		f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.UnBlockEvents
+	F.Intrinsic.Control.EndSelect
+	
+F.Intrinsic.Control.Catch	
+F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGArchived_RowCellClick.End
+
+Program.Sub.Form_Resize.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+'Let Form grow larger than 15375, but not lower
+F.Intrinsic.Control.If(V.Screen.Form.Width,<,15360)
+	Gui.Form..Size(15360,V.Screen.Form.Height)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch	
+F.Intrinsic.String.Build("Project: GCG_4755_OrderDash.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.callsub(form_unload)
+F.Intrinsic.Control.EndTry
+Program.Sub.Form_Resize.End
